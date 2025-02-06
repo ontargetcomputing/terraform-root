@@ -1,7 +1,16 @@
 name: Terraform Lint
 
 on:
-  workflow_dispatch: 
+  workflow_dispatch:
+    inputs:
+      account:
+        description: "Target account"
+        required: true
+        type: string
+      initiator:
+        description: "User who triggered the workflow"
+        required: false
+        type: string
 
 jobs:
   terraform:
@@ -12,7 +21,12 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Print Received Parameters
+        run: |
+          echo "Running Terraform for submodule: ${{ github.event.inputs.account }}"
+          echo "Triggered by: ${{ github.event.inputs.initiator }}"
+
+
       - name: Run Terraform Plan
         run: |
           echo "RUNNING"
-          
