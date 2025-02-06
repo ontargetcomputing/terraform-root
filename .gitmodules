@@ -1,0 +1,3 @@
+[submodule "accounts/terraform-submodule"]
+	path = accounts/terraform-submodule
+	url = https://github.com/ontargetcomputing/terraform-submodule.git
