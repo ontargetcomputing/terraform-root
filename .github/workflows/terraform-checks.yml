@@ -1,0 +1,111 @@
+name: Terraform Checks
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+    paths:
+      - "accounts/**"
+
+jobs:
+  validate-workspace-changes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files (Only in accounts/)
+        id: changed-files
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.ref }} --depth=1
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }} HEAD | grep '^accounts/' || true)
+
+          # If there are no relevant changes, exit early
+          if [[ -z "$CHANGED_FILES" ]]; then
+            echo "No relevant changes in accounts/ directory."
+            exit 0
+          fi
+          echo "$CHANGED_FILES" > changed_files.txt
+
+      - name: Extract unique workspaces
+        id: check-workspaces
+        run: |
+          WORKSPACES=$(cat changed_files.txt | awk -F'/' '{print $1 "/" $2 "/" $3}' | sort -u)
+          echo "Modified workspaces:"
+          echo "$WORKSPACES"
+
+          UNIQUE_COUNT=$(echo "$WORKSPACES" | wc -l)
+
+          if [[ "$UNIQUE_COUNT" -eq 1 ]]; then
+            WORKSPACE_PATH=$(echo "$WORKSPACES")
+            echo "workspace_path=$WORKSPACE_PATH" >> $GITHUB_ENV
+            echo "::set-output name=workspace_path::$WORKSPACE_PATH"
+          fi
+
+          # Fail if multiple workspaces are modified
+          if [[ "$UNIQUE_COUNT" -gt 1 ]]; then
+            echo "❌ Multiple workspaces were modified. Please limit changes to a single workspace."
+            exit 1
+          fi
+
+  terraform-lint:
+    needs: validate-workspace-changes
+    if: ${{ needs.validate-workspace-changes.outputs.workspace_path != '' }}
+    runs-on: ubuntu-latest
+    steps:
+     name: Run TFLint on changed workspace
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }} 
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download workspace path
+        uses: actions/download-artifact@v4
+        with:
+          name: workspace-path
+
+      - name: Read workspace path
+        id: read-path
+        run: |
+          echo "*************"
+          WORKSPACE_PATH=$(cat workspace_path.txt)
+          echo "Workspace Path: $WORKSPACE_PATH"
+          echo "workspace_path=$WORKSPACE_PATH" >> $GITHUB_ENV
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: latest
+
+      - name: Install TFLint
+        run: |
+          curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+          tflint --init
+
+      - name: Run Terraform Linter in the changed workspace
+        run: |
+          echo "🚀 Running TFLint in ${{ needs.validate-workspace-changes.outputs.workspace_path }}..."
+          flint --chdir=${{ needs.validate-workspace-changes.outputs.workspace_path }} --format=compact | tee tflint.log
+
+  terraform-sast:
+    needs: validate-workspace-changes
+    if: ${{ needs.validate-workspace-changes.outputs.workspace_path != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install tfsec (Terraform security scanner)
+        run: |
+          curl -s https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install.sh | bash
+
+      - name: Run SAST Security Scan (tfsec)
+        run: |
+          echo "🚀 Running tfsec in ${{ needs.validate-workspace-changes.outputs.workspace_path }}..."
+          tfsec ${{ needs.validate-workspace-changes.outputs.workspace_path }}
