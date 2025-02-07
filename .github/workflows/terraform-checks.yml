@@ -13,6 +13,8 @@ on:
 jobs:
   validate-workspace-changes:
     runs-on: ubuntu-latest
+    outputs:
+      workspace_path: ${{ steps.check-workspaces.outputs.workspace_path }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -41,17 +43,19 @@ jobs:
 
           UNIQUE_COUNT=$(echo "$WORKSPACES" | wc -l)
 
-          if [[ "$UNIQUE_COUNT" -eq 1 ]]; then
-            WORKSPACE_PATH=$(echo "$WORKSPACES")
-            echo "workspace_path=$WORKSPACE_PATH" >> $GITHUB_ENV
-            echo "::set-output name=workspace_path::$WORKSPACE_PATH"
-          fi
-
           # Fail if multiple workspaces are modified
           if [[ "$UNIQUE_COUNT" -gt 1 ]]; then
             echo "❌ Multiple workspaces were modified. Please limit changes to a single workspace."
             exit 1
           fi
+
+          if [[ "$UNIQUE_COUNT" -eq 1 ]]; then
+            WORKSPACE_PATH=$(echo "$WORKSPACES")
+            echo "workspace_path=$WORKSPACE_PATH" >> $GITHUB_ENV
+            echo "::set-output name=workspace_path::$WORKSPACE_PATH"
+            echo "✅ Only a single workspace was modified, moving on to linting and sast checks"
+          fi
+
 
   terraform-lint:
     needs: validate-workspace-changes
@@ -60,19 +64,6 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
-      - name: Download workspace path
-        uses: actions/download-artifact@v4
-        with:
-          name: workspace-path
-
-      - name: Read workspace path
-        id: read-path
-        run: |
-          echo "*************"
-          WORKSPACE_PATH=$(cat workspace_path.txt)
-          echo "Workspace Path: $WORKSPACE_PATH"
-          echo "workspace_path=$WORKSPACE_PATH" >> $GITHUB_ENV
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
