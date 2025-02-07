@@ -12,6 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }} 
     steps:
+      - name: Print Debug Info
+        run: |
+          echo "Workflow Conclusion: ${{ github.event.workflow_run.conclusion }}"
+                
       - name: Checkout Repository
         uses: actions/checkout@v4
 
