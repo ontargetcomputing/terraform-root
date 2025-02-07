@@ -1,31 +1,25 @@
 name: Terraform Lint
 
 on:
-  workflow_dispatch:
-    inputs:
-      account:
-        description: "Target account"
-        required: true
-        type: string
-      initiator:
-        description: "User who triggered the workflow"
-        required: false
-        type: string
+  workflow_run:
+    workflows: ["Check Workspace Modifications"]
+    types:
+      - completed
 
 jobs:
   tflint:
-    name: Run TFLint on accounts/${{ github.event.inputs.account }}
+    name: Run TFLint on changed workspace
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
-      - name: Print Received Parameters
+      - name: Read workspace path
+        id: read-path
         run: |
-          echo "Running tflint for account/${{ github.event.inputs.account }}"
-          echo "Triggered by: ${{ github.event.inputs.initiator }}"
+          WORKSPACE_PATH=$(cat workspace_path.txt)
+          echo "Workspace Path: $WORKSPACE_PATH"
+          echo "workspace_path=$WORKSPACE_PATH" >> $GITHUB_ENV
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -37,8 +31,10 @@ jobs:
           curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
           tflint --init
 
-      - name: Run TFLint
-        run:  tflint --format=compact | tee tflint.log
+      - name: Run Terraform Linter in the changed workspace
+        run: |
+          echo "🚀 Running Terraform linting in ${{ env.workspace_path }}..."
+          tflint --chdir=${{ env.workspace_path }} --format=compact | tee tflint.log
 
       - name: Upload TFLint Report
         if: always()
