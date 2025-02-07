@@ -9,6 +9,6 @@ resource "aws_instance" "example" {
   security_groups        = ["default"]     # Using default security group (bad practice)
 
   tags = {
-    Name = "ExampleInstances"
+    Name = "ExampleInstances1"
   }
 }
