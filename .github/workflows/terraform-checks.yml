@@ -88,11 +88,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install tfsec (Terraform security scanner)
-        run: |
-          curl -s https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install.sh | bash
-
-      - name: Run SAST Security Scan (tfsec)
-        run: |
-          echo "🚀 Running tfsec in ${{ needs.validate-workspace-changes.outputs.workspace_path }}..."
-          tfsec ${{ needs.validate-workspace-changes.outputs.workspace_path }}
+      - name: tfsec
+        uses: aquasecurity/tfsec-action@v1.0.0
+        with:
+          working_directory: ${{ needs.validate-workspace-changes.outputs.workspace_path }}
