@@ -1,0 +1,46 @@
+name: Check Workspace Modifications
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+    paths:
+      - "accounts/**"
+
+
+jobs:
+  validate-workspace-changes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get changed files
+        id: changed-files
+        run: |
+          # Get the list of modified files in the PR
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }} HEAD)
+          echo "$CHANGED_FILES" > changed_files.txt
+
+      - name: Extract unique workspaces
+        id: check-workspaces
+        run: |
+          # Extract workspace directories from changed files
+          WORKSPACES=$(cat changed_files.txt | awk -F'/' '{print $2 "/" $3}' | sort -u)
+          echo "Modified workspaces:"
+          echo "$WORKSPACES"
+
+          # Count unique workspaces
+          NUM_WORKSPACES=$(echo "$WORKSPACES" | wc -l)
+
+          # Output result
+          echo "workspace_count=$NUM_WORKSPACES" >> $GITHUB_ENV
+
+      - name: Fail if multiple workspaces are modified
+        if: ${{ env.workspace_count > 1 }}
+        run: |
+          echo "❌ Multiple workspaces were modified in this PR. Please limit changes to a single workspace."
+          exit 1

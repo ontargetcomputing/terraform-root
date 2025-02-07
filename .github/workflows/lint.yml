@@ -13,7 +13,8 @@ on:
         type: string
 
 jobs:
-  terraform:
+  tflint:
+    name: Run TFLint on accounts/${{ github.event.inputs.account }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -23,10 +24,25 @@ jobs:
 
       - name: Print Received Parameters
         run: |
-          echo "Running Terraform for submodule: ${{ github.event.inputs.account }}"
+          echo "Running tflint for account/${{ github.event.inputs.account }}"
           echo "Triggered by: ${{ github.event.inputs.initiator }}"
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: latest
 
-      - name: Run Terraform Plan
+      - name: Install TFLint
         run: |
-          echo "RUNNING"
+          curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+          tflint --init
+
+      - name: Run TFLint
+        run:  tflint --format=compact | tee tflint.log
+
+      - name: Upload TFLint Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tflint-report
+          path: tflint.log
