@@ -43,7 +43,7 @@ jobs:
           UNIQUE_COUNT=$(echo "$WORKSPACES" | wc -l)          
           echo "workspace_count=$UNIQUE_COUNT" >> $GITHUB_ENV
 
-          WORKSPACE_PATH=$(echo "$WORKSPACES" | head -n 1)
+          WORKSPACE_PATH=$(echo "$WORKSPACES")
           echo "$WORKSPACE_PATH" > workspace_path.txt
 
       # - name: Upload workspace path as artifact
@@ -57,4 +57,5 @@ jobs:
         if: ${{ env.workspace_count > 1 }}
         run: |
           echo "❌ Multiple workspaces were modified in this PR. Please limit changes to a single workspace."
+          cat workspace_path.txt
           exit 1
