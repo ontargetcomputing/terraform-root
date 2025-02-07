@@ -46,12 +46,12 @@ jobs:
           WORKSPACE_PATH=$(echo "$WORKSPACES")
           echo "$WORKSPACE_PATH" > workspace_path.txt
 
-      # - name: Upload workspace path as artifact
-      #   if: success()
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: workspace-path
-      #     path: workspace_path.txt
+      - name: Upload workspace path as artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: workspace-path
+          path: workspace_path.txt
 
       - name: Fail if multiple workspaces are modified
         if: ${{ env.workspace_count > 1 }}

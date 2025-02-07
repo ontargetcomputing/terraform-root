@@ -12,16 +12,18 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }} 
     steps:
-      - name: Print Debug Info
-        run: |
-          echo "Workflow Conclusion: ${{ github.event.workflow_run.conclusion }}"
-                
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      - name: Download workspace path
+        uses: actions/download-artifact@v4
+        with:
+          name: workspace-path
 
       - name: Read workspace path
         id: read-path
         run: |
+          echo "*************"
           WORKSPACE_PATH=$(cat workspace_path.txt)
           echo "Workspace Path: $WORKSPACE_PATH"
           echo "workspace_path=$WORKSPACE_PATH" >> $GITHUB_ENV
