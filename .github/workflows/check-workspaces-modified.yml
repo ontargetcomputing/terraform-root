@@ -21,7 +21,7 @@ jobs:
         id: changed-files
         run: |
           # Get only files changed in the accounts/ directory
-          CHANGED_FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }} main | grep '^accounts/' || true)
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }} origin/main | grep '^accounts/' || true)
           
           # If there are no relevant changes, exit early
           if [[ -z "$CHANGED_FILES" ]]; then
