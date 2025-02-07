@@ -10,7 +10,6 @@ on:
     paths:
       - "accounts/**"
 
-
 jobs:
   validate-workspace-changes:
     runs-on: ubuntu-latest
@@ -18,26 +17,39 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Get changed files
+      - name: Get changed files (Only in accounts/)
         id: changed-files
         run: |
-          # Get the list of modified files in the PR
-          CHANGED_FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }} HEAD)
+          # Get only files changed in the accounts/ directory
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }} main | grep '^accounts/' || true)
+          
+          # If there are no relevant changes, exit early
+          if [[ -z "$CHANGED_FILES" ]]; then
+            echo "No relevant changes in accounts/ directory."
+            exit 0
+          fi
+          
           echo "$CHANGED_FILES" > changed_files.txt
 
       - name: Extract unique workspaces
         id: check-workspaces
         run: |
-          # Extract workspace directories from changed files
-          WORKSPACES=$(cat changed_files.txt | awk -F'/' '{print $2 "/" $3}' | sort -u)
+          WORKSPACES=$(cat changed_files.txt | awk -F'/' '{print $1 "/" $2 "/" $3}' | sort -u)
           echo "Modified workspaces:"
           echo "$WORKSPACES"
 
-          # Count unique workspaces
-          NUM_WORKSPACES=$(echo "$WORKSPACES" | wc -l)
+          UNIQUE_COUNT=$(echo "$WORKSPACES" | wc -l)          
+          echo "workspace_count=$UNIQUE_COUNT" >> $GITHUB_ENV
 
-          # Output result
-          echo "workspace_count=$NUM_WORKSPACES" >> $GITHUB_ENV
+          WORKSPACE_PATH=$(echo "$WORKSPACES" | head -n 1)
+          echo "$WORKSPACE_PATH" > workspace_path.txt
+
+      # - name: Upload workspace path as artifact
+      #   if: success()
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: workspace-path
+      #     path: workspace_path.txt
 
       - name: Fail if multiple workspaces are modified
         if: ${{ env.workspace_count > 1 }}
