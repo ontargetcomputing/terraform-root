@@ -16,19 +16,21 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Get changed files (Only in accounts/)
         id: changed-files
         run: |
-          # Get only files changed in the accounts/ directory
+          git fetch origin ${{ github.event.pull_request.base.ref }} --depth=1
           CHANGED_FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }} HEAD | grep '^accounts/' || true)
-          
+
           # If there are no relevant changes, exit early
           if [[ -z "$CHANGED_FILES" ]]; then
             echo "No relevant changes in accounts/ directory."
             exit 0
           fi
-          
+
           echo "$CHANGED_FILES" > changed_files.txt
 
       - name: Extract unique workspaces
