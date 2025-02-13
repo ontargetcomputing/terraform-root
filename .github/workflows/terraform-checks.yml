@@ -58,10 +58,6 @@ jobs:
     if: ${{ needs.validate-workspace-changes.outputs.workspace_path != '' }}
     runs-on: ubuntu-latest
     steps:
-     name: Run TFLint on changed workspace
-    runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }} 
-    steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -93,7 +89,7 @@ jobs:
           echo "🚀 Running TFLint in ${{ needs.validate-workspace-changes.outputs.workspace_path }}..."
           flint --chdir=${{ needs.validate-workspace-changes.outputs.workspace_path }} --format=compact | tee tflint.log
 
-  terraform-sast:
+  terraform-tfsec:
     needs: validate-workspace-changes
     if: ${{ needs.validate-workspace-changes.outputs.workspace_path != '' }}
     runs-on: ubuntu-latest
@@ -109,3 +105,42 @@ jobs:
         run: |
           echo "🚀 Running tfsec in ${{ needs.validate-workspace-changes.outputs.workspace_path }}..."
           tfsec ${{ needs.validate-workspace-changes.outputs.workspace_path }}
+
+  terraform-fmt:
+    needs: validate-workspace-changes
+    if: ${{ needs.validate-workspace-changes.outputs.workspace_path != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.9.8
+
+      - name: Get Workspace Path
+        run: echo "WORKSPACE_PATH=${{ needs.validate-workspace-changes.outputs.workspace_path }}" >> $GITHUB_ENV
+
+      - name: Run Terraform Format Check
+        id: fmt-check
+        run: |
+          if [ -d "$WORKSPACE_PATH" ]; then
+            terraform fmt -check -recursive "$WORKSPACE_PATH" || echo "needs_formatting=true" >> $GITHUB_ENV
+          fi
+
+      - name: Run Terraform Format
+        if: env.needs_formatting == 'true'
+        run: |
+          echo "🚀 Running terraform fmt in ${{ needs.validate-workspace-changes.outputs.workspace_path }}..."
+          terraform fmt -recursive "$WORKSPACE_PATH"
+
+      - name: Commit and Push Changes
+        if: env.needs_formatting == 'true'
+        run: |
+          echo "🚀 Commiting formatting changes in ${{ needs.validate-workspace-changes.outputs.workspace_path }}..."
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add "$WORKSPACE_PATH"
+          git commit -m "chore: auto-format Terraform files in $WORKSPACE_PATH"
+          git push origin HEAD:${{ github.head_ref }}
