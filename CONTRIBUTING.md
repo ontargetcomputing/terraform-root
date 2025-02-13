@@ -4,7 +4,7 @@ Thank you for contributing to this repository! To ensure high-quality changes an
 
 ---
 
-## 🛠️ **Branching Strategy**
+## 🔄 **Branching Strategy**
 - The **`main` branch is protected** and **direct commits are not allowed**.
 - Contributors should **create branches** from `main` and submit a **Pull Request (PR)** for review.
 - Use the following branch naming conventions:
@@ -15,7 +15,7 @@ Thank you for contributing to this repository! To ensure high-quality changes an
 
 ---
 
-## 🚀 **Workflow for Making Changes**
+## 🛠️ **Workflow for Making Changes**
 ### 1️⃣ **Clone the Repository** 
   ```sh
   git clone https://github.com/ontargetcomputing/terraform-root.git
@@ -86,8 +86,11 @@ git push --force
   🛑 Protected Branches
 
 The main branch has the following protections:
+
 ✅ Direct pushes are blocked – All changes must go through a PR.
+
 ✅ At least 1 approval is required before merging.
+
 ✅ Status checks (Terraform validation, linting) must pass before merging.
 
 ✅ Best Practices
